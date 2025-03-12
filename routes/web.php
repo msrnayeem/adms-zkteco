@@ -1,0 +1,30 @@
+<?php
+
+use App\Http\Controllers\DeviceController;
+use App\Http\Controllers\iclockController;
+use App\Http\Controllers\ShiftController;
+use App\Http\Controllers\EmployeeController;
+use Illuminate\Support\Facades\Route;
+
+Route::get('devices', [DeviceController::class, 'Index'])->name('devices.index');
+Route::get('devices-log', [DeviceController::class, 'DeviceLog'])->name('devices.DeviceLog');
+Route::get('finger-log', [DeviceController::class, 'FingerLog'])->name('devices.FingerLog');
+Route::get('attendance', [DeviceController::class, 'Attendance'])->name('devices.Attendance');
+
+// handshake
+Route::get('/iclock/cdata', [iclockController::class, 'handshake']);
+// request dari device
+Route::post('/iclock/cdata', [iclockController::class, 'receiveRecords']);
+
+Route::get('/iclock/test', [iclockController::class, 'test']);
+Route::get('/iclock/getrequest', [iclockController::class, 'getrequest']);
+
+Route::get('/today', [iclockController::class, 'today']);
+
+Route::get('/', function () {
+    return redirect('devices');
+});
+// shifts
+Route::resource('shifts', ShiftController::class)->except(['show', 'destroy']);
+//users
+Route::resource('employees', EmployeeController::class)->except(['destroy']);
