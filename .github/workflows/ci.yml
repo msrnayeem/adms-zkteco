@@ -3,10 +3,10 @@ name: Laravel CI/CD
 on:
   push:
     branches:
-      - master  # Trigger on push to the 'master' branch
+      - master
   pull_request:
     branches:
-      - master  # Trigger on pull request targeting 'master' branch
+      - master
 
 jobs:
   deploy:
@@ -17,23 +17,27 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
 
+      # Copy the SSH private key file into the runner's .ssh directory
+      - name: Set up SSH key
+        run: |
+          mkdir -p ~/.ssh
+          cp .github/workflows/aws-adms.pem ~/.ssh/id_rsa  # Copy the private key to .ssh
+          chmod 600 ~/.ssh/id_rsa  # Set correct permissions for the private key
+          # Optional: Verify the key
+          cat ~/.ssh/id_rsa
+
       # Deploy to EC2
       - name: Deploy to EC2
         uses: appleboy/ssh-action@v0.1.1
         with:
           host: 3.107.194.223  # Your EC2 instance's IP address
           username: ubuntu  # Your EC2 username
-          key: ${{ secrets.SSH_PRIVATE_KEY }}  # Using the private key directly from GitHub Secrets
+          key: ~/.ssh/id_rsa  # Path to your SSH key
           script: |
             cd /var/www/html/adms-zkteco
-            git pull origin master  # Pull the latest changes
-            composer install --no-dev --optimize-autoloader  # Install dependencies
-            php artisan migrate:fresh --seed  # Reset database & seed data
-            php artisan config:clear && php artisan cache:clear  # Clear config/cache
-            php artisan route:cache  # Cache routes for better performance
-            php artisan route:cache  # Cache routes for better performance
+            git pull origin master
+            composer install --no-dev --optimize-autoloader
+            php artisan migrate:fresh --seed
+            php artisan config:clear && php artisan cache:clear
+            php artisan route:cache
 
-env:
-  # Embed the base64 encoded private key directly into the environment variables
-  SSH_PRIVATE_KEY: |
-    LS0tLS1CRUdJTiBSU0EgUFJJVkFURSBLRVktLS0tLQpNSUlFcEFJQkFBS0NBUUVBeTEyQUxJak9iN2haR2hJczU0dndjVlRHNVUvOUNJNTV0NWo4THdOWlhSZ3NBNks1ClYwQkNuV3J3MGNIS1F6Nlh6Nkx3Z3NkZGkydUoxcittY2M4UGJKVTZVeVVXOXBvQU9mMjVuT1EvRE9XUVdhZzYKaG9HY24zUGVlRHV1TkVQTVN2OFRXK1FlQzkzSFoyc1publF2L1JSdnVuTlJ1VkV5YmFOdHp2N1NBSHVHaUxoZwpjclhtQ29ZVFhma1Y3cGlPT1RLeVA3N3A2YVJnZnNNeXdNY1kvU09kUXlHbEE3WFgyYlNTcm1YTkRKengrc0dEClNHUzh4OHo2UWRXRnprWEJUWHhYcENsd2pYMVRqWFd0bVZRSFFGQTZEUDRTdDlaYXdSaVk1dkVUOHpnS1cya08KeFU2QmhlTzRWNVprNnZ1c2oyMmZTMnJkeXJnTW5FaWlucm9BZ3dJREFRQUJBb0lCQVFDUVRnQ3RtVVlqTUlUSgpZeXhLQVpyVVVIdnlMQmc3MkwyMThmREF5M2VWLzVqNzIzUDQzYmhuUzRNbTFJUlp3d2ltWmRDVWZETjh3d3BFClFDb3poK0pDQW9Jb2phRUZ5N0Z0ZFFWSXR3Mm1jUjlFLzRMSC95RE1aTVB3UFNrWUhTUFI4NzRnN25ZRHBaUGgKWnJYL0lpTUxTbjBkcU1iTTRUa1BZM0IvK1lHNnBLaTVQK2Ntd0xkcVRvYWFrdmJHRmNJQUU1czRZZjBDeHFOQQpmVWJUUnFETmxoQnpyQ0lESDRrOFRwRUZocFJWek9UUUhQNWRta1h0SUVJcGU4Yy9GTnFsTHhNY0FkMTQ2cFZvCm9idUFlWXJWTUNBRGo5cE9Nems0VHlXjmp1M2gxZXJISDcrUlBBbElZMkl3Vm1RcDB4aHNCZjUyL0M3SlRwM0kKSnpHVUtvMkJBb0dCQU9SM2RjWjE5RDZpVUFEbkFwcFY5WkszVWhmVTQrWVV6TklIZUFsdGU5MGZkM0U2TmZRVgp6VHdoczN4WmIzazNlMS9lOGtnV3NpNnp5SzNDSVFPRGNVRkloV2tPaHZ5c0pvb1ZyNnZSTEgwcmFGVkhqUXlSClhhSTVXZnhQZWVyWWh6amI3a2dZQko0eVhDNzVPWVEvdVBwajZ4azN0a2xXY2I0M3JWT0RKbWk3QW9HQkFPUGYKbjkvWFI2R2ZEU2VZODlWQkd4T3lZTEgwMklUaVY0dWJ0Z3hqZUdWSW15Tys5QjJJdmZSTjlYbS8rczhwakN6aApBZGMxOXp5YjQwWDRzVE8xNlRCaW9HU3VST2U3YThKRmtzK0ZYUHdiTCtuRmZIeG9BL25kY1dERmdWTmdzVEIyCmUwL1BSRjZHRDQ4LzF5WldmVFkwVTVCeFhMdmlGQ2FMVlhRSnd3N1pBb0dBV1RnUmhUd2c4cWkrSjJ3UFJ5Z1UKYTRRdGllTDRVS3lFdyt4b3d2Mi9aajNZamg0V1hjaDV5bWE2eWUrL0tZNHlIdUZZcWpBNnl5UW9WVHEvVzdqago3SU9lbmNVdmo5TEdoaHdyNnlRWGhKWUQrM0dpc21xK0x4REloRkNoSXNZR0lIMDZrMnJWdXRXZHpEWkZjTkRWCnN1cDhMKy9pdnNjRVNpMUNBWi93eXVzQ2dZRUFyaDJFNzJoelYwOU1vZUVCRHdWOFJ3U1pWZUNjUUkwaUQ0NmUKLzhCUmtqSjBPRkFEL3owb3g2OTV6ZG1mTHdPMEUrYXBuV09pMGpEYTYvQW1samg5UVhkYXp4TkptemRlRTBkTgo8anNZM1psNGRzdHJYek9yTmhTNk9STXd5aUNyd3pnRTZPcWFkdzlBZkZodmNOL05OTW11d0VPZWRBRS9IR1NDCm12T0trNkVDZ1lCNWJadkxhYTVnSmdKNlVzMGNrU0IwakJnVkI4blBoRVl0Yzc4VlY5Qkg3RHFLa0tXNEN6cy8KOHlaUm5qMTJYSXZsR1pCdCt4R1NGUlhCMkRlZmVJVGF4emYwMkM2cU9xcWlUXyl1Q0hUWmw3aEx6ZzR3VHFNYQplZGYvVjRxbCtKeVoyZGc5a3lWTkRNeGRuR2c2MDFVK3VtWm9KSUtqaUhjZmdBQldkSTBWREE9PQotLS0tLUVORCBSU0EgUFJJVkFURSBLRVktLS0tLQ==
