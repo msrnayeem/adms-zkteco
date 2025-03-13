@@ -11,18 +11,24 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+name: Laravel CI/CD
+
+on:
+  push:
+    branches:
+      - master  # Trigger on push to the 'master' branch
+  pull_request:
+    branches:
+      - master  # Trigger on pull request targeting 'master' branch
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
 
     steps:
       # Checkout the repository
       - name: Checkout repository
         uses: actions/checkout@v2
-
-      # Set up SSH key for authentication
-      - name: Set up SSH key
-        run: |
-          mkdir -p ~/.ssh
-          echo "$SSH_PRIVATE_KEY" | base64 --decode > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
 
       # Deploy to EC2
       - name: Deploy to EC2
@@ -30,13 +36,14 @@ jobs:
         with:
           host: 3.107.194.223  # Your EC2 instance's IP address
           username: ubuntu  # Your EC2 username
-          key: ~/.ssh/id_rsa  # Path to your SSH key
+          key: ${{ secrets.SSH_PRIVATE_KEY }}  # Using the private key directly from GitHub Secrets
           script: |
             cd /var/www/html/adms-zkteco
             git pull origin master  # Pull the latest changes
             composer install --no-dev --optimize-autoloader  # Install dependencies
             php artisan migrate:fresh --seed  # Reset database & seed data
             php artisan config:clear && php artisan cache:clear  # Clear config/cache
+            php artisan route:cache  # Cache routes for better performance
             php artisan route:cache  # Cache routes for better performance
 
 env:
