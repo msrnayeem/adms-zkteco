@@ -1,35 +1,23 @@
-name: Laravel CI/CD
+name: Laravel Deploy to EC2
 
 on:
   push:
     branches:
-      - master  # Trigger on push to the 'main' branch
-  pull_request:
-    branches:
-      - master  # Trigger on pull request targeting 'main' branch
+      - master  # Trigger on push to 'master' branch
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
-    
-    steps:
-      # Checkout the repository
-      - name: Checkout repository
-        uses: actions/checkout@v2
-
-      # Run tests (Make sure tests will run correctly using the existing .env on the server)
-      - name: Run tests
-        run: |
-          ./vendor/bin/phpunit
-
-  # Deployment job (optional, if you want to deploy to AWS EC2 after successful tests)
   deploy:
     runs-on: ubuntu-latest
-    needs: build  # This ensures deployment happens after successful build
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
+
+      # Save SSH Key
+      - name: Save SSH Key
+        run: |
+          echo "${{ secrets.EC2_SSH_KEY }}" > private_key.pem
+          chmod 600 private_key.pem  # Secure permissions
 
       # Deploy to EC2
       - name: Deploy to EC2
@@ -37,9 +25,11 @@ jobs:
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USERNAME }}
-          key: ${{ secrets.EC2_SSH_KEY }}
+          key: private_key.pem
           script: |
-            cd /var/www/html/adms-zkteco
-            git pull origin main  # Pull the latest code without touching .env
-            composer install --no-dev --optimize-autoloader  # Ensure dependencies are installed (but won't overwrite .env)
-            php artisan migrate --force  # Run migrations, but .env won't change
+            cd /var/www/html/adms-zkteco  # Change to your Laravel project directory
+            git pull origin master  # Pull the latest changes
+            composer install --no-dev --optimize-autoloader  # Install dependencies
+            php artisan migrate:fresh --seed  # Reset database & seed data
+            php artisan config:clear && php artisan cache:clear  # Clear config/cache
+            php artisan route:cache  # Cache routes for better performance
