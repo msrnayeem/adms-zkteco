@@ -21,10 +21,11 @@ jobs:
       - name: Set up SSH key
         run: |
           mkdir -p ~/.ssh
-          cp .github/workflows/aws-adms.pem ~/.ssh/id_rsa  # Copy the private key to .ssh
-          chmod 600 ~/.ssh/id_rsa  # Set correct permissions for the private key
-          # Optional: Verify the key
-          cat ~/.ssh/id_rsa
+          cp .github/workflows/aws-adms.pem ~/.ssh/id_rsa  # Copy the private key to ~/.ssh/
+          chmod 600 ~/.ssh/id_rsa  # Set the correct permissions for the private key
+          # Check if the key is in place and verify it
+          ls -al ~/.ssh  # List the files to verify the key is there
+
 
       # Deploy to EC2
       - name: Deploy to EC2
