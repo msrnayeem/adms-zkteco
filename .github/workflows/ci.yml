@@ -11,19 +11,6 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-name: Laravel CI/CD
-
-on:
-  push:
-    branches:
-      - master  # Trigger on push to the 'master' branch
-  pull_request:
-    branches:
-      - master  # Trigger on pull request targeting 'master' branch
-
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
 
     steps:
       # Checkout the repository
