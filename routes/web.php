@@ -5,6 +5,8 @@ use App\Http\Controllers\iclockController;
 use App\Http\Controllers\ShiftController;
 use App\Http\Controllers\EmployeeController;
 use Illuminate\Support\Facades\Route;
+use Carbon\Carbon;
+
 
 Route::get('devices', [DeviceController::class, 'Index'])->name('devices.index');
 Route::get('devices-log', [DeviceController::class, 'DeviceLog'])->name('devices.DeviceLog');
@@ -28,3 +30,7 @@ Route::get('/', function () {
 Route::resource('shifts', ShiftController::class)->except(['show', 'destroy']);
 //users
 Route::resource('employees', EmployeeController::class)->except(['destroy']);
+
+Route::get('time', function(){
+    return Carbon::now();
+});
