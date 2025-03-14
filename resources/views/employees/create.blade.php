@@ -24,24 +24,6 @@
                 @enderror
             </div>
 
-            <div class="form-group mt-2">
-                <label for="password">Password</label>
-                <input type="password" name="password" class="form-control @error('password') is-invalid @enderror"
-                    id="password" placeholder="Enter password" value="{{ old('password') }}">
-                @error('password')
-                    <div class="text-danger">{{ $message }}</div>
-                @enderror
-            </div>
-
-            <div class="form-group mt-2">
-                <label for="password_confirmation">Confirm Password</label>
-                <input type="password" name="password_confirmation"
-                    class="form-control @error('password_confirmation') is-invalid @enderror" id="password_confirmation"
-                    placeholder="Confirm your password" value="{{ old('password_confirmation') }}">
-                @error('password_confirmation')
-                    <div class="text-danger">{{ $message }}</div>
-                @enderror
-            </div>
 
             <div class="form-group mt-2">
                 <label for="shift_id">Shift</label>

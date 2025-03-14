@@ -2,39 +2,50 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Attendance;
-use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Http;
 
 class iclockController extends Controller
 {
     public function __invoke(Request $request) {}
 
-    // handshake
+    // Handshake: receives device handshake, logs it, updates device status, and forwards handshake to cPanel.
     public function handshake(Request $request)
     {
-        Log::info('New Device handshake event', [
-            'request' => $request->all(),
-        ]);
+        Log::info('New Device handshake event', ['request' => $request->all()]);
+
         $data = [
-            'url' => json_encode($request->all()),
-            'data' => $request->getContent(),
-            'sn' => $request->input('SN'),
+            'url'    => json_encode($request->all()),
+            'data'   => $request->getContent(),
+            'sn'     => $request->input('SN'),
             'option' => $request->input('option'),
         ];
         DB::table('device_log')->insert($data);
 
-        // update status device
+        // Update device status in AWS DB
         DB::table('devices')->updateOrInsert(
             ['no_sn' => $request->input('SN')],
             ['online' => now()]
         );
 
+        // Forward handshake data to cPanel (AWS sends without prefix)
+        $cpanelUrl = "http://your-cpanel-domain.com/receive-handshake"; // Replace with your actual cPanel URL
+        $response = Http::get($cpanelUrl, [
+            'sn'     => $request->input('SN'),
+            'option' => $request->input('option'),
+        ]);
+
+        if ($response->successful()) {
+            Log::info('Handshake successfully sent to cPanel');
+        } else {
+            Log::error('Failed to send handshake to cPanel', ['response' => $response->body()]);
+        }
+
         $r = "GET OPTION FROM: {$request->input('SN')}\r\n".
              "Stamp=9999\r\n".
-             'OpStamp='.time()."\r\n".
+             'OpStamp=' . time() . "\r\n".
              "ErrorDelay=60\r\n".
              "Delay=30\r\n".
              "ResLogDay=18250\r\n".
@@ -43,129 +54,140 @@ class iclockController extends Controller
              "TransTimes=00:00;14:05\r\n".
              "TransInterval=1\r\n".
              "TransFlag=1111000000\r\n".
-            //  "TimeZone=7\r\n" .
              "Realtime=1\r\n".
-             'Encrypt=0';
+             "Encrypt=0";
 
         return $r;
     }
 
-    // $r = "GET OPTION FROM:%s{$request->SN}\nStamp=".strtotime('now')."\nOpStamp=1565089939\nErrorDelay=30\nDelay=10\nTransTimes=00:00;14:05\nTransInterval=1\nTransFlag=1111000000\nTimeZone=7\nRealtime=1\nEncrypt=0\n";
-    // implementasi https://docs.nufaza.com/docs/devices/zkteco_attendance/push_protocol/
-    // setting timezone
-    // request absensi
+    // receiveRecords: processes attendance or log data from the device, stores it in AWS DB, and forwards inserted records to cPanel.
     public function receiveRecords(Request $request)
     {
-        Log::info('New Device scan event', [
-            'request' => $request->all(),
-        ]);
+        Log::info('New Device scan event', ['request' => $request->all()]);
+
+        // If the table is ATTLOG, log extra details.
         if ($request->input('table') === 'ATTLOG') {
-            // Extract employee ID from request content and log it
             $arr = preg_split('/\\r\\n|\\r|,|\\n/', $request->getContent());
-
-            foreach ($arr as $rey) {
-                if (empty($rey)) {
-                    continue;
-                }
-
-                // Split the data from the attendance record
-                $data = explode("\t", $rey);
-
-                // Assuming employee ID is the first field in the data
+            foreach ($arr as $line) {
+                if (empty($line)) continue;
+                $data = explode("\t", $line);
                 $employee_id = $data[0] ?? 'Unknown';
-
-                // Assuming timestamp is the second field in the data
-                $timestamp = $data[1] ?? 'Unknown';
-
-                // Log the event including employee_id, timestamp, and the request data
+                $timestamp   = $data[1] ?? 'Unknown';
                 Log::info('New Device scan event', [
                     'employee_id' => $employee_id,
-                    'timestamp' => $timestamp,
+                    'timestamp'   => $timestamp,
                 ]);
             }
         }
 
-        // DB::connection()->enableQueryLog();
-        $content['url'] = json_encode($request->all());
-        $content['data'] = $request->getContent();
+        // Store raw request in finger_log.
+        $content = [
+            'url'  => json_encode($request->all()),
+            'data' => $request->getContent(),
+        ];
         DB::table('finger_log')->insert($content);
+
         try {
-            // $post_content = $request->getContent();
-            // $arr = explode("\n", $post_content);
             $arr = preg_split('/\\r\\n|\\r|,|\\n/', $request->getContent());
-            // $tot = count($arr);
             $tot = 0;
-            // operation log
+
+            // If the table is OPERLOG, process each non-empty line.
             if ($request->input('table') == 'OPERLOG') {
-                // $tot = count($arr) - 1;
-                foreach ($arr as $rey) {
-                    if (isset($rey)) {
+                $operlogRecords = [];
+                foreach ($arr as $line) {
+                    if (!empty($line)) {
+                        $operlogRecords[] = [
+                            'sn'         => $request->input('SN'),
+                            'table'      => 'OPERLOG',
+                            'line'       => $line,
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ];
                         $tot++;
                     }
                 }
-
-                return 'OK: '.$tot;
-            }
-            // attendance
-            foreach ($arr as $rey) {
-                // $data = preg_split('/\s+/', trim($rey));
-                if (empty($rey)) {
-                    continue;
+                if (count($operlogRecords) > 0) {
+                    $cpanelUrl = "http://your-cpanel-domain.com/receive-data"; // cPanel endpoint for records
+                    $responseOper = Http::post($cpanelUrl, [
+                        'table'   => 'OPERLOG',
+                        'records' => $operlogRecords,
+                    ]);
+                    if ($responseOper->successful()) {
+                        Log::info('OPERLOG records forwarded to cPanel');
+                    } else {
+                        Log::error('Failed to forward OPERLOG records to cPanel', ['response' => $responseOper->body()]);
+                    }
                 }
-                // $data = preg_split('/\s+/', trim($rey));
-                $data = explode("\t", $rey);
-                // dd($data);
-                $q['sn'] = $request->input('SN');
-                $q['table'] = $request->input('table');
-                $q['stamp'] = $request->input('Stamp');
-                $q['employee_id'] = $data[0];
-                $q['timestamp'] = $data[1];
-                $q['status1'] = $this->validateAndFormatInteger($data[2] ?? null);
-                $q['status2'] = $this->validateAndFormatInteger($data[3] ?? null);
-                $q['status3'] = $this->validateAndFormatInteger($data[4] ?? null);
-                $q['status4'] = $this->validateAndFormatInteger($data[5] ?? null);
-                $q['status5'] = $this->validateAndFormatInteger($data[6] ?? null);
-                $q['created_at'] = now();
-                $q['updated_at'] = now();
-                // dd($q);
-                DB::table('in_out_records')->insert($q);
-                $tot++;
-                // dd(DB::getQueryLog());
+                return 'OK: ' . $tot;
             }
 
-            return 'OK: '.$tot;
-        } catch (Throwable $e) {
-            $data['error'] = $e;
-            DB::table('error_log')->insert($data);
+            // Process attendance (or similar) data.
+            $attendanceRecords = [];
+            foreach ($arr as $line) {
+                if (empty($line)) continue;
+                $data = explode("\t", $line);
+                $record = [
+                    'sn'          => $request->input('SN'),
+                    'table'       => $request->input('table'),
+                    'stamp'       => $request->input('Stamp'),
+                    'employee_id' => $data[0],
+                    'timestamp'   => $data[1],
+                    'status1'     => $this->validateAndFormatInteger($data[2] ?? null),
+                    'status2'     => $this->validateAndFormatInteger($data[3] ?? null),
+                    'status3'     => $this->validateAndFormatInteger($data[4] ?? null),
+                    'status4'     => $this->validateAndFormatInteger($data[5] ?? null),
+                    'status5'     => $this->validateAndFormatInteger($data[6] ?? null),
+                    'created_at'  => now(),
+                    'updated_at'  => now(),
+                ];
+                DB::table('in_out_records')->insert($record);
+                $attendanceRecords[] = $record;
+                $tot++;
+            }
+            if (count($attendanceRecords) > 0) {
+                $cpanelUrl = "http://your-cpanel-domain.com/receive-data";
+                $responseAttendance = Http::post($cpanelUrl, [
+                    'table'   => 'in_out_records',
+                    'records' => $attendanceRecords,
+                ]);
+                if ($responseAttendance->successful()) {
+                    Log::info('Attendance records forwarded to cPanel');
+                } else {
+                    Log::error('Failed to forward attendance records to cPanel', ['response' => $responseAttendance->body()]);
+                }
+            }
+            return 'OK: ' . $tot;
+        } catch (\Throwable $e) {
+            $errorData = ['error' => $e->getMessage()];
+            DB::table('error_log')->insert($errorData);
             report($e);
-
-            return 'ERROR: '.$tot."\n";
+            return 'ERROR: ' . $e->getMessage();
         }
     }
 
     public function test(Request $request)
     {
-        $log['data'] = $request->getContent();
+        $log = ['data' => $request->getContent()];
         DB::table('finger_log')->insert($log);
+        $cpanelUrl = "http://your-cpanel-domain.com/receive-data";
+        $responseTest = Http::post($cpanelUrl, [
+            'table'   => 'finger_log',
+            'records' => [$log],
+        ]);
+        if ($responseTest->successful()) {
+            Log::info('Test record forwarded to cPanel');
+        } else {
+            Log::error('Failed to forward test record to CPanel', ['response' => $responseTest->body()]);
+        }
     }
 
     public function getrequest(Request $request)
     {
-        // $r = "GET OPTION FROM: ".$request->SN."\nStamp=".strtotime('now')."\nOpStamp=".strtotime('now')."\nErrorDelay=60\nDelay=30\nResLogDay=18250\nResLogDelCount=10000\nResLogCount=50000\nTransTimes=00:00;14:05\nTransInterval=1\nTransFlag=1111000000\nRealtime=1\nEncrypt=0";
-
         return 'OK';
     }
 
     private function validateAndFormatInteger($value)
     {
-        return isset($value) && $value !== '' ? (int) $value : null;
-        // return is_numeric($value) ? (int) $value : null;
-    }
-
-    public function today()
-    {
-        $today = Carbon::today();
-       
-        dd("ok");
+        return isset($value) && $value !== '' ? (int)$value : null;
     }
 }

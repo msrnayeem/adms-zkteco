@@ -26,25 +26,6 @@
             </div>
 
             <div class="form-group mt-2">
-                <label for="password">Password (Leave empty if not changing)</label>
-                <input type="password" name="password" class="form-control @error('password') is-invalid @enderror"
-                    id="password" placeholder="Enter new password" value="">
-                @error('password')
-                    <div class="text-danger">{{ $message }}</div>
-                @enderror
-            </div>
-
-            <div class="form-group mt-2">
-                <label for="password_confirmation">Confirm Password (Leave empty if not changing)</label>
-                <input type="password" name="password_confirmation"
-                    class="form-control @error('password_confirmation') is-invalid @enderror" id="password_confirmation"
-                    placeholder="Confirm your password" value="">
-                @error('password_confirmation')
-                    <div class="text-danger">{{ $message }}</div>
-                @enderror
-            </div>
-
-            <div class="form-group mt-2">
                 <label for="zk_device_id">ZK Device ID</label>
                 <input type="number" name="zk_device_id" class="form-control @error('zk_device_id') is-invalid @enderror"
                     id="zk_device_id" placeholder="Enter ZK Device ID"

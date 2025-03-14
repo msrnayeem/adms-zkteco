@@ -36,18 +36,14 @@ class EmployeeController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email',
-            'password' => 'required|confirmed|min:6',
             'zk_device_id' => 'nullable|integer', 
-            'role' => 'nullable|string',
             'shift_id' => 'nullable|exists:shifts,id',
         ]);
 
         $user = User::create([
             'name' => $validated['name'],
             'email' => $validated['email'],
-            'password' => bcrypt($validated['password']),
             'zk_device_id' => $validated['zk_device_id'], 
-            'role' => $validated['role'] ?? 'employee',
             'shift_id' => $validated['shift_id'] ?? null,
         ]);
 
@@ -72,9 +68,7 @@ class EmployeeController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email,' . $employee->id,
-            'password' => 'nullable|string|min:6|confirmed',
             'zk_device_id' => 'nullable|integer',
-            'role' => 'nullable|string',
             'shift_id' => 'nullable|exists:shifts,id',
         ]);
 

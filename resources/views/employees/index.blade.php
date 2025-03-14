@@ -25,7 +25,6 @@
                 <tr>
                     <th>Name</th>
                     <th>Email</th>
-                    <th>Role</th>
                     <th>ZK Device ID</th>
                     <th>Shift</th>
                     <th>Actions</th>
@@ -36,7 +35,6 @@
                     <tr>
                         <td>{{ $employee->name }}</td>
                         <td>{{ $employee->email }}</td>
-                        <td>{{ $employee->role }}</td>
                         <td>{{ $employee->zk_device_id }}</td>
                         <td>{{ $employee->shift->name ?? 'Not Assigned' }}</td>
                         <td>
