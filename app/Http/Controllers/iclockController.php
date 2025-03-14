@@ -14,7 +14,7 @@ class iclockController extends Controller
     // Handshake: receives device handshake, logs it, updates device status, and forwards handshake to cPanel.
     public function handshake(Request $request)
     {
-        Log::info('New Device handshake event', ['request' => $request->all()]);
+       
 
         $data = [
             'url'    => json_encode($request->all()),
@@ -63,22 +63,22 @@ class iclockController extends Controller
     // receiveRecords: processes attendance or log data from the device, stores it in AWS DB, and forwards inserted records to cPanel.
     public function receiveRecords(Request $request)
     {
-        Log::info('New Device scan event', ['request' => $request->all()]);
+       
 
         // If the table is ATTLOG, log extra details.
-        if ($request->input('table') === 'ATTLOG') {
-            $arr = preg_split('/\\r\\n|\\r|,|\\n/', $request->getContent());
-            foreach ($arr as $line) {
-                if (empty($line)) continue;
-                $data = explode("\t", $line);
-                $employee_id = $data[0] ?? 'Unknown';
-                $timestamp   = $data[1] ?? 'Unknown';
-                Log::info('New Device scan event', [
-                    'employee_id' => $employee_id,
-                    'timestamp'   => $timestamp,
-                ]);
-            }
-        }
+        // if ($request->input('table') === 'ATTLOG') {
+        //     $arr = preg_split('/\\r\\n|\\r|,|\\n/', $request->getContent());
+        //     foreach ($arr as $line) {
+        //         if (empty($line)) continue;
+        //         $data = explode("\t", $line);
+        //         $employee_id = $data[0] ?? 'Unknown';
+        //         $timestamp   = $data[1] ?? 'Unknown';
+        //         Log::info('New Device scan event', [
+        //             'employee_id' => $employee_id,
+        //             'timestamp'   => $timestamp,
+        //         ]);
+        //     }
+        // }
 
         // Store raw request in finger_log.
         $content = [
