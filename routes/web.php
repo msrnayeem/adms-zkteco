@@ -32,5 +32,5 @@ Route::resource('shifts', ShiftController::class)->except(['show', 'destroy']);
 Route::resource('employees', EmployeeController::class)->except(['destroy']);
 
 Route::get('time', function(){
-    return Carbon::now();
+    return Carbon::now('Asia/Dhaka')->format('Y-m-d h:i A');
 });

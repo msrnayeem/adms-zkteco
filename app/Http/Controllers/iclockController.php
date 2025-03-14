@@ -28,7 +28,7 @@ class iclockController extends Controller
         // Update device status in AWS DB
         DB::table('devices')->updateOrInsert(
             ['no_sn' => $request->input('SN')],
-            ['online' => Carbon::now()]
+            ['online' => Carbon::now('Asia/Dhaka')->format('Y-m-d h:i A')]
         );
 
         // Forward handshake data to cPanel (AWS sends without prefix)
@@ -101,8 +101,8 @@ class iclockController extends Controller
                             'sn'         => $request->input('SN'),
                             'table'      => 'OPERLOG',
                             'line'       => $line,
-                            'created_at' => Carbon::now(),
-                            'updated_at' => Carbon::now(),
+                            'created_at' => Carbon::now('Asia/Dhaka')->format('Y-m-d h:i A'),
+                            'updated_at' => Carbon::now('Asia/Dhaka')->format('Y-m-d h:i A'),
                         ];
                         $tot++;
                     }
@@ -138,8 +138,8 @@ class iclockController extends Controller
                     'status3'     => $this->validateAndFormatInteger($data[4] ?? null),
                     'status4'     => $this->validateAndFormatInteger($data[5] ?? null),
                     'status5'     => $this->validateAndFormatInteger($data[6] ?? null),
-                    'created_at'  => Carbon::now() ,
-                    'updated_at'  => Carbon::now(),
+                    'created_at'  => Carbon::now('Asia/Dhaka')->format('Y-m-d h:i A') ,
+                    'updated_at'  => Carbon::now('Asia/Dhaka')->format('Y-m-d h:i A'),
                 ];
                 DB::table('in_out_records')->insert($record);
                 $attendanceRecords[] = $record;
