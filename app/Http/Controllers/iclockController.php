@@ -8,9 +8,13 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Http;
 use Carbon\Carbon;
 
+use Illuminate\Http\JsonResponse;
+
 class iclockController extends Controller
 {
     public function __invoke(Request $request) {}
+
+   
 
     // Handshake: receives device handshake, logs it, updates device status, and forwards handshake to cPanel.
     public function handshake(Request $request)
@@ -32,18 +36,18 @@ class iclockController extends Controller
             ['online' => Carbon::now('Asia/Dhaka')->format('Y-m-d h:i A')]
         );
 
-        // Forward handshake data to cPanel (AWS sends without prefix)
-        // $cpanelUrl = "http://hrt.bluedreamgroup.com/api/receive-handshake"; // Replace with your actual cPanel URL
-        // $response = Http::get($cpanelUrl, [
-        //     'sn'     => $request->input('SN'),
-        //     'option' => $request->input('option'),
-        // ]);
+       // Forward handshake data to cPanel (AWS sends without prefix)
+        $cpanelUrl = "http://hrt.bluedreamgroup.com/api/receive-handshake"; // Replace with your actual cPanel URL
+        $response = Http::get($cpanelUrl, [
+            'sn'     => $request->input('SN'),
+            'option' => $request->input('option'),
+        ]);
 
-        // if ($response->successful()) {
-        //     Log::info('Handshake successfully sent to cPanel');
-        // } else {
-        //     Log::info('Failed to send handshake to cPanel', ['response' => $response->body()]);
-        // }
+        if ($response->successful()) {
+            Log::info('Handshake successfully sent to cPanel');
+        } else {
+            Log::info('Failed to send handshake to cPanel', ['response' => $response->body()]);
+        }
 
         $r = "GET OPTION FROM: {$request->input('SN')}\r\n".
              "Stamp=9999\r\n".

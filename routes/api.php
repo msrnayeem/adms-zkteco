@@ -26,3 +26,5 @@ use App\Http\Controllers\iclockController;
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
+
+Route::post('/test', [iclockController::class, 'postmethodtest']);
