@@ -33,17 +33,17 @@ class iclockController extends Controller
         );
 
         // Forward handshake data to cPanel (AWS sends without prefix)
-        $cpanelUrl = "http://hrt.bluedreamgroup.com/api/receive-handshake"; // Replace with your actual cPanel URL
-        $response = Http::get($cpanelUrl, [
-            'sn'     => $request->input('SN'),
-            'option' => $request->input('option'),
-        ]);
+        // $cpanelUrl = "http://hrt.bluedreamgroup.com/api/receive-handshake"; // Replace with your actual cPanel URL
+        // $response = Http::get($cpanelUrl, [
+        //     'sn'     => $request->input('SN'),
+        //     'option' => $request->input('option'),
+        // ]);
 
-        if ($response->successful()) {
-            Log::info('Handshake successfully sent to cPanel');
-        } else {
-            Log::info('Failed to send handshake to cPanel', ['response' => $response->body()]);
-        }
+        // if ($response->successful()) {
+        //     Log::info('Handshake successfully sent to cPanel');
+        // } else {
+        //     Log::info('Failed to send handshake to cPanel', ['response' => $response->body()]);
+        // }
 
         $r = "GET OPTION FROM: {$request->input('SN')}\r\n".
              "Stamp=9999\r\n".
