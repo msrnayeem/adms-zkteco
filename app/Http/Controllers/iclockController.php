@@ -31,7 +31,7 @@ class iclockController extends Controller
         );
 
         // Forward handshake data to cPanel (AWS sends without prefix)
-        $cpanelUrl = "http://your-cpanel-domain.com/receive-handshake"; // Replace with your actual cPanel URL
+        $cpanelUrl = "https://hrt.bluedreamgroup.com/receive-handshake"; // Replace with your actual cPanel URL
         $response = Http::get($cpanelUrl, [
             'sn'     => $request->input('SN'),
             'option' => $request->input('option'),
@@ -107,7 +107,7 @@ class iclockController extends Controller
                     }
                 }
                 if (count($operlogRecords) > 0) {
-                    $cpanelUrl = "http://your-cpanel-domain.com/receive-data"; // cPanel endpoint for records
+                    $cpanelUrl = "https://hrt.bluedreamgroup.com/receive-data"; // cPanel endpoint for records
                     $responseOper = Http::post($cpanelUrl, [
                         'table'   => 'OPERLOG',
                         'records' => $operlogRecords,
@@ -145,7 +145,7 @@ class iclockController extends Controller
                 $tot++;
             }
             if (count($attendanceRecords) > 0) {
-                $cpanelUrl = "http://your-cpanel-domain.com/receive-data";
+                $cpanelUrl = "https://hrt.bluedreamgroup.com/receive-data";
                 $responseAttendance = Http::post($cpanelUrl, [
                     'table'   => 'in_out_records',
                     'records' => $attendanceRecords,
@@ -169,7 +169,7 @@ class iclockController extends Controller
     {
         $log = ['data' => $request->getContent()];
         DB::table('finger_log')->insert($log);
-        $cpanelUrl = "http://your-cpanel-domain.com/receive-data";
+        $cpanelUrl = "https://hrt.bluedreamgroup.com/receive-data";
         $responseTest = Http::post($cpanelUrl, [
             'table'   => 'finger_log',
             'records' => [$log],
