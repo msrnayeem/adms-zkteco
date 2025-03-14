@@ -31,7 +31,7 @@ class iclockController extends Controller
         );
 
         // Forward handshake data to cPanel (AWS sends without prefix)
-        $cpanelUrl = "https://hrt.bluedreamgroup.com/receive-handshake"; // Replace with your actual cPanel URL
+        $cpanelUrl = "https://hrt.bluedreamgroup.com/api/receive-handshake"; // Replace with your actual cPanel URL
         $response = Http::get($cpanelUrl, [
             'sn'     => $request->input('SN'),
             'option' => $request->input('option'),
@@ -40,7 +40,7 @@ class iclockController extends Controller
         if ($response->successful()) {
             Log::info('Handshake successfully sent to cPanel');
         } else {
-            Log::error('Failed to send handshake to cPanel', ['response' => $response->body()]);
+            Log::info('Failed to send handshake to cPanel', ['response' => $response->body()]);
         }
 
         $r = "GET OPTION FROM: {$request->input('SN')}\r\n".
@@ -107,7 +107,7 @@ class iclockController extends Controller
                     }
                 }
                 if (count($operlogRecords) > 0) {
-                    $cpanelUrl = "https://hrt.bluedreamgroup.com/receive-data"; // cPanel endpoint for records
+                    $cpanelUrl = "https://hrt.bluedreamgroup.com/api/receive-data"; // cPanel endpoint for records
                     $responseOper = Http::post($cpanelUrl, [
                         'table'   => 'OPERLOG',
                         'records' => $operlogRecords,
@@ -115,7 +115,7 @@ class iclockController extends Controller
                     if ($responseOper->successful()) {
                         Log::info('OPERLOG records forwarded to cPanel');
                     } else {
-                        Log::error('Failed to forward OPERLOG records to cPanel', ['response' => $responseOper->body()]);
+                        Log::info('Failed to forward OPERLOG records to cPanel', ['response' => $responseOper->body()]);
                     }
                 }
                 return 'OK: ' . $tot;
@@ -145,7 +145,7 @@ class iclockController extends Controller
                 $tot++;
             }
             if (count($attendanceRecords) > 0) {
-                $cpanelUrl = "https://hrt.bluedreamgroup.com/receive-data";
+                $cpanelUrl = "https://hrt.bluedreamgroup.com/api/receive-data";
                 $responseAttendance = Http::post($cpanelUrl, [
                     'table'   => 'in_out_records',
                     'records' => $attendanceRecords,
@@ -153,7 +153,7 @@ class iclockController extends Controller
                 if ($responseAttendance->successful()) {
                     Log::info('Attendance records forwarded to cPanel');
                 } else {
-                    Log::error('Failed to forward attendance records to cPanel', ['response' => $responseAttendance->body()]);
+                    Log::info('Failed to forward attendance records to cPanel', ['response' => $responseAttendance->body()]);
                 }
             }
             return 'OK: ' . $tot;
@@ -169,7 +169,7 @@ class iclockController extends Controller
     {
         $log = ['data' => $request->getContent()];
         DB::table('finger_log')->insert($log);
-        $cpanelUrl = "https://hrt.bluedreamgroup.com/receive-data";
+        $cpanelUrl = "https://hrt.bluedreamgroup.com/api/receive-data";
         $responseTest = Http::post($cpanelUrl, [
             'table'   => 'finger_log',
             'records' => [$log],
@@ -177,7 +177,7 @@ class iclockController extends Controller
         if ($responseTest->successful()) {
             Log::info('Test record forwarded to cPanel');
         } else {
-            Log::error('Failed to forward test record to CPanel', ['response' => $responseTest->body()]);
+            Log::info('Failed to forward test record to CPanel', ['response' => $responseTest->body()]);
         }
     }
 
