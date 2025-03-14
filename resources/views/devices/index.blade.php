@@ -17,7 +17,8 @@
                     <tr>
                         {{-- <td>{{ $d->id }}</td> --}}
                         <td>{{ $d->no_sn }}</td>
-                        <td>{{ $d->online }}</td>
+                        <td>{{ \Carbon\Carbon::parse($d->online)->format('g:i A') }}
+                            ({{ \Carbon\Carbon::parse($d->online)->timezoneName }})</td>
                     </tr>
                 @endforeach
             </tbody>
