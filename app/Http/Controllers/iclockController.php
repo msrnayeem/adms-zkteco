@@ -70,32 +70,32 @@ class iclockController extends Controller
 
     public function receiveRecords(Request $request)
     {
-        if ($request->input('table') === 'ATTLOG') {
-            // Extract employee ID from request content and log it
-            $arr = preg_split('/\\r\\n|\\r|,|\\n/', $request->getContent());
+        // if ($request->input('table') === 'ATTLOG') {
+        //     // Extract employee ID from request content and log it
+        //     $arr = preg_split('/\\r\\n|\\r|,|\\n/', $request->getContent());
 
-            foreach ($arr as $rey) {
-                if (empty($rey)) {
-                    continue;
-                }
-                // Split the data from the attendance record
-                $data = explode("\t", $rey);
+        //     foreach ($arr as $rey) {
+        //         if (empty($rey)) {
+        //             continue;
+        //         }
+        //         // Split the data from the attendance record
+        //         $data = explode("\t", $rey);
 
-                // Assuming employee ID is the first field in the data
-                $employee_id = $data[0] ?? 'Unknown';
+        //         // Assuming employee ID is the first field in the data
+        //         $employee_id = $data[0] ?? 'Unknown';
 
-                // Assuming timestamp is the second field in the data
-                $timestamp = $data[1] ?? 'Unknown';
-                $two = $data[2] ?? 'Unknown';
-                // Log the event including employee_id, timestamp, and the request data
-                Log::info('New Device scan event', [
-                    'employee_id' => $employee_id,
-                    'timestamp' => $timestamp,
-                    'method' => $data[3],
-                    'two' => $two,
-                ]);
-            }
-        }
+        //         // Assuming timestamp is the second field in the data
+        //         $timestamp = $data[1] ?? 'Unknown';
+        //         $two = $data[2] ?? 'Unknown';
+        //         // Log the event including employee_id, timestamp, and the request data
+        //         Log::info('New Device scan event', [
+        //             'employee_id' => $employee_id,
+        //             'timestamp' => $timestamp,
+        //             'method' => $data[3],
+        //             'two' => $two,
+        //         ]);
+        //     }
+        // }
 
         //DB::connection()->enableQueryLog();
         $content['url'] = json_encode($request->all());
@@ -120,40 +120,37 @@ class iclockController extends Controller
             $attendanceRecords = [];
             //attendance
             foreach ($arr as $rey) {
-                // $data = preg_split('/\s+/', trim($rey));
-                if (empty($rey)) {
-                    continue;
-                }
+
                 // $data = preg_split('/\s+/', trim($rey));
                 $data = explode("\t", $rey);
 
-                if (empty($data)) {
-                    Log::info('Empty Data', ['data' => $data]);
+                // Check if the expected index exists to avoid Undefined array key error
+                $employee_id = $data[0] ?? 'Unknown';
+                $timestamp = $data[1] ?? 'Unknown';
+                $method = $data[3] ?? null;
+
+                // Log the values to make sure we see what's being processed
+                Log::info('Processed Attendance Record', [
+                    'employee_id' => $employee_id,
+                    'timestamp' => $timestamp,
+                    'method' => $method,
+                ]);
+
+                if ($employee_id == 'Unknown' || $timestamp == 'Unknown' || $method == null) {
                     continue;
+                } else {
+                    $q['sn'] = $request->input('SN');
+                    $q['table'] = $request->input('table');
+                    $q['stamp'] = $request->input('Stamp');
+                    $q['employee_id'] = $employee_id;
+                    $q['timestamp'] = $timestamp;
+                    $q['status2'] = $method;
+                    $q['created_at'] = now();
+                    $q['updated_at'] = now();
+                    DB::table('in_out_records')->insert($q);
+                    $attendanceRecords[] = $q;
+                    $tot++;
                 }
-
-
-                // Log::info('Data', ['data' => $rey]);
-
-                $q['sn'] = $request->input('SN');
-                $q['table'] = $request->input('table');
-                $q['stamp'] = $request->input('Stamp');
-                $q['employee_id'] = $data[0];
-                $q['timestamp'] = $data[1];
-                $q['status1'] = $this->validateAndFormatInteger($data[2] ?? null);
-                $q['status2'] = $this->validateAndFormatInteger($data[3] ?? null);
-                $q['status3'] = $this->validateAndFormatInteger($data[4] ?? null);
-                $q['status4'] = $this->validateAndFormatInteger($data[5] ?? null);
-                $q['status5'] = $this->validateAndFormatInteger($data[6] ?? null);
-                $q['created_at'] = now();
-                $q['updated_at'] = now();
-                //dd($q);
-                Log::info('Insert Data Keys', ['keys' => array_keys($q)]);
-
-                DB::table('in_out_records')->insert($q);
-                $attendanceRecords[] = $q;
-                $tot++;
-                // dd(DB::getQueryLog());
             }
 
             if (count($attendanceRecords) > 0) {
@@ -163,12 +160,12 @@ class iclockController extends Controller
                 ]);
 
                 if ($response->status() == 200) {
-                    Log::info("Data Response from cPanel", [
+                    Log::info("success store from cPanel", [
                         'http_code' => $response->status(),
                         'response'  => $response->body(),
                     ]);
                 } else {
-                    Log::info("Data Response from cPanel", [
+                    Log::info("failed to store in cpanel", [
                         'http_code' => $response->status(),
                         'response'  => $response->body(),
                     ]);
@@ -177,6 +174,7 @@ class iclockController extends Controller
 
             return "OK: " . $tot;
         } catch (Throwable $e) {
+
             $data['error'] = $e;
             // DB::table('error_log')->insert($data);
             report($e);
@@ -193,10 +191,5 @@ class iclockController extends Controller
         // $r = "GET OPTION FROM: ".$request->SN."\nStamp=".strtotime('now')."\nOpStamp=".strtotime('now')."\nErrorDelay=60\nDelay=30\nResLogDay=18250\nResLogDelCount=10000\nResLogCount=50000\nTransTimes=00:00;14:05\nTransInterval=1\nTransFlag=1111000000\nRealtime=1\nEncrypt=0";
 
         return "OK";
-    }
-    private function validateAndFormatInteger($value)
-    {
-        return isset($value) && $value !== '' ? (int)$value : null;
-        // return is_numeric($value) ? (int) $value : null;
     }
 }

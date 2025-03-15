@@ -18,11 +18,7 @@
                         <th>SN</th>
                         <th>Employee ID</th>
                         <th>Timestamp</th>
-                        <th>Status 1</th>
-                        <th>Status 2</th>
-                        <th>Status 3</th>
-                        <th>Status 4</th>
-                        <th>Status 5</th>
+                        <th>Method</th>
 
                     </tr>
                 </thead>
@@ -33,7 +29,7 @@
                             <td>{{ $attendance->sn }}</td>
                             <td>{{ $attendance->employee_id }}</td>
                             <td>{{ \Carbon\Carbon::parse($attendance->timestamp)->format('d-m-Y h:i A') }}</td>
-                            <td>{{ $attendance->status1 }}</td>
+
                             <td>
                                 @if ($attendance->status2 == 15)
                                     face
@@ -45,9 +41,6 @@
                                     {{ $attendance->status2 }}
                                 @endif
                             </td>
-                            <td>{{ $attendance->status3 }}</td>
-                            <td>{{ $attendance->status4 }}</td>
-                            <td>{{ $attendance->status5 }}</td>
                         </tr>
                     @endforeach
                 </tbody>
