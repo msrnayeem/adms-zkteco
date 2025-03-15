@@ -127,6 +127,12 @@ class iclockController extends Controller
                 // $data = preg_split('/\s+/', trim($rey));
                 $data = explode("\t", $rey);
 
+                if (empty($data)) {
+                    Log::info('Empty Data', ['data' => $data]);
+                    continue;
+                }
+
+
                 // Log::info('Data', ['data' => $rey]);
 
                 $q['sn'] = $request->input('SN');
@@ -168,7 +174,6 @@ class iclockController extends Controller
                     ]);
                 }
             }
-
 
             return "OK: " . $tot;
         } catch (Throwable $e) {

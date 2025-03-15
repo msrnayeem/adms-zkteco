@@ -17,7 +17,7 @@
                     <tr>
                         {{-- <td>{{ $d->id }}</td> --}}
                         <td>{{ $d->no_sn }}</td>
-                        <td>{{ $d->online }}</td>
+                        <td>{{ \Carbon\Carbon::parse($d->online)->format('d-m-Y h:i A') }}</td>
                     </tr>
                 @endforeach
             </tbody>
