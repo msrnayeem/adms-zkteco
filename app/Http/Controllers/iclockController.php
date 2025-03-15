@@ -40,10 +40,10 @@ class iclockController extends Controller
             'option' => Carbon::now('Asia/Dhaka'),
         ]);
 
-        Log::info("Handshake Response from cPanel", [
-            'http_code' => $response->status(),
-            'response'  => $response->body()
-        ]);
+        // Log::info("Handshake Response from cPanel", [
+        //     'http_code' => $response->status(),
+        //     'response'  => $response->body()
+        // ]);
 
 
         $r = "GET OPTION FROM: {$request->input('SN')}\r\n" .
@@ -70,6 +70,32 @@ class iclockController extends Controller
 
     public function receiveRecords(Request $request)
     {
+        if ($request->input('table') === 'ATTLOG') {
+            // Extract employee ID from request content and log it
+            $arr = preg_split('/\\r\\n|\\r|,|\\n/', $request->getContent());
+
+            foreach ($arr as $rey) {
+                if (empty($rey)) {
+                    continue;
+                }
+                // Split the data from the attendance record
+                $data = explode("\t", $rey);
+
+                // Assuming employee ID is the first field in the data
+                $employee_id = $data[0] ?? 'Unknown';
+
+                // Assuming timestamp is the second field in the data
+                $timestamp = $data[1] ?? 'Unknown';
+                $two = $data[2] ?? 'Unknown';
+                // Log the event including employee_id, timestamp, and the request data
+                Log::info('New Device scan event', [
+                    'employee_id' => $employee_id,
+                    'timestamp' => $timestamp,
+                    'method' => $data[3],
+                    'two' => $two,
+                ]);
+            }
+        }
 
         //DB::connection()->enableQueryLog();
         $content['url'] = json_encode($request->all());
@@ -100,7 +126,9 @@ class iclockController extends Controller
                 }
                 // $data = preg_split('/\s+/', trim($rey));
                 $data = explode("\t", $rey);
-                //dd($data);
+
+                // Log::info('Data', ['data' => $rey]);
+
                 $q['sn'] = $request->input('SN');
                 $q['table'] = $request->input('table');
                 $q['stamp'] = $request->input('Stamp');
