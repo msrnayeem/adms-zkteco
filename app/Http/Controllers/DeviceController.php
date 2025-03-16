@@ -6,7 +6,7 @@ use Yajra\DataTables\Facades\Datatables;
 use Illuminate\Http\Request;
 use App\Models\Device;
 use App\Models\Attendance;
-use DB;
+use Illuminate\Support\Facades\DB;
 
 class DeviceController extends Controller
 {
@@ -14,31 +14,40 @@ class DeviceController extends Controller
     public function index(Request $request)
     {
         $data['lable'] = "Devices";
-        $data['log'] = DB::table('devices')->select('id','no_sn','online')->orderBy('online', 'DESC')->get();
-        return view('devices.index',$data);
+        $data['log'] = DB::table('devices')->select('id', 'no_sn', 'online')->orderBy('online', 'DESC')->get();
+        return view('devices.index', $data);
     }
 
     public function DeviceLog(Request $request)
     {
         $data['lable'] = "Devices Log";
-        $data['log'] = DB::table('device_log')->select('id','data','url')->orderBy('id','DESC')->get();
-        
-        return view('devices.log',$data);
+        $data['log'] = DB::table('device_log')->select('id', 'data', 'url')->orderBy('id', 'DESC')->get();
+
+        return view('devices.log', $data);
     }
-    
+
     public function FingerLog(Request $request)
     {
         $data['lable'] = "Finger Log";
-        $data['log'] = DB::table('finger_log')->select('id','data','url')->orderBy('id','DESC')->get();
-        return view('devices.log',$data);
+        $data['log'] = DB::table('finger_log')->select('id', 'data', 'url')->orderBy('id', 'DESC')->get();
+        return view('devices.log', $data);
     }
-    public function Attendance() {
-       //$attendances = Attendance::latest('timestamp')->orderBy('id','DESC')->paginate(15);
-       $attendances = DB::table('in_out_records')->select('id','sn','table','stamp','employee_id','timestamp','status1','status2','status3','status4','status5')->orderBy('id','DESC')->paginate(15);
+    public function inOutRecourd()
+    {
+
+        //$attendances = Attendance::latest('timestamp')->orderBy('id','DESC')->paginate(15);
+        $attendances = DB::table('in_out_records')->select('id', 'sn', 'table', 'stamp', 'employee_id', 'timestamp', 'status1', 'status2', 'status3', 'status4', 'status5')->orderBy('id', 'DESC')->paginate(15);
+
+        return view('devices.inOutRecourd', compact('attendances'));
+    }
+
+    public function Attendance()
+    {
+        $attendances = Attendance::orderBy('date', 'desc')->paginate(15);
 
         return view('devices.attendance', compact('attendances'));
-        
     }
+
 
     // // Menampilkan form tambah device
     // public function create()

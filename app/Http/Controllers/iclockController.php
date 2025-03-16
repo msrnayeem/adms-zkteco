@@ -3,13 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\Models\Attendance;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Throwable;
-
+use App\Models\Shift;
 
 class iclockController extends Controller
 {
@@ -70,32 +71,6 @@ class iclockController extends Controller
 
     public function receiveRecords(Request $request)
     {
-        // if ($request->input('table') === 'ATTLOG') {
-        //     // Extract employee ID from request content and log it
-        //     $arr = preg_split('/\\r\\n|\\r|,|\\n/', $request->getContent());
-
-        //     foreach ($arr as $rey) {
-        //         if (empty($rey)) {
-        //             continue;
-        //         }
-        //         // Split the data from the attendance record
-        //         $data = explode("\t", $rey);
-
-        //         // Assuming employee ID is the first field in the data
-        //         $employee_id = $data[0] ?? 'Unknown';
-
-        //         // Assuming timestamp is the second field in the data
-        //         $timestamp = $data[1] ?? 'Unknown';
-        //         $two = $data[2] ?? 'Unknown';
-        //         // Log the event including employee_id, timestamp, and the request data
-        //         Log::info('New Device scan event', [
-        //             'employee_id' => $employee_id,
-        //             'timestamp' => $timestamp,
-        //             'method' => $data[3],
-        //             'two' => $two,
-        //         ]);
-        //     }
-        // }
 
         //DB::connection()->enableQueryLog();
         $content['url'] = json_encode($request->all());
@@ -191,5 +166,110 @@ class iclockController extends Controller
         // $r = "GET OPTION FROM: ".$request->SN."\nStamp=".strtotime('now')."\nOpStamp=".strtotime('now')."\nErrorDelay=60\nDelay=30\nResLogDay=18250\nResLogDelCount=10000\nResLogCount=50000\nTransTimes=00:00;14:05\nTransInterval=1\nTransFlag=1111000000\nRealtime=1\nEncrypt=0";
 
         return "OK";
+    }
+
+    public function inOutTrigger(Request $request)
+    {
+        if ($request->input('table') === 'ATTLOG') {
+            // Extract employee ID from request content and log it
+            $arr = preg_split('/\\r\\n|\\r|,|\\n/', $request->getContent());
+
+            foreach ($arr as $rey) {
+                if (empty($rey)) {
+                    continue;
+                }
+                // Split the data from the attendance record
+                $data = explode("\t", $rey);
+
+                // Assuming employee ID is the first field in the data
+                $employee_id = $data[0] ?? 'Unknown';
+
+                // Assuming timestamp is the second field in the data
+                $timestamp = $data[1] ?? 'Unknown';
+                $method = $data[3] ?? null;
+
+                if ($employee_id !== 'Unknown' || $timestamp !== 'Unknown' || $method !== null) {
+                    $q['sn'] = $request->input('SN');
+                    $q['table'] = $request->input('table');
+                    $q['stamp'] = $request->input('Stamp');
+                    $q['employee_id'] = $employee_id;
+                    $q['timestamp'] = $timestamp;
+                    $q['status2'] = $method;
+                    $q['created_at'] = now();
+                    $q['updated_at'] = now();
+                    DB::table('in_out_records')->insert($q);
+                }
+            }
+        }
+    }
+
+    public function updateAttendance(Request $request)
+    {
+        // Extract the provided employee_id (zk_device_id) and punch timestamp
+        $zkEmployeeId = $request->input('employee_id');
+        $timestamp = Carbon::parse($request->input('timestamp'));  // This will handle the timestamp
+        $date = $timestamp->toDateString();      // e.g. "2025-03-17"
+        $timeOnly = $timestamp->toTimeString();  // e.g. "17:30:00" (for exit punch)
+
+        // Get user details including shift
+        $user = User::where('zk_device_id', $zkEmployeeId)
+            ->select('id', 'shift_id')
+            ->first();
+
+        if (!$user) {
+            return response()->json(['message' => 'User not found'], 404);
+        }
+
+        // Get shift details
+        $shift = Shift::find($user->shift_id);
+
+        if (!$shift) {
+            return response()->json(['message' => 'Shift not found'], 404);
+        }
+
+        // Convert shift times to Carbon instances
+        $shiftStartTime = Carbon::parse($shift->entry_time)->format('H:i:s');  // Shift start time as time string (e.g. "10:00:00")
+        $shiftEndTime = Carbon::parse($shift->out_time)->format('H:i:s');      // Shift end time as time string (e.g. "18:00:00")
+        $lateEntryLimit = Carbon::parse($shift->entry_time)->addMinutes($shift->late_entry)->format('H:i:s');  // e.g. "10:15:00"
+        $earlyOutLimit = Carbon::parse($shift->out_time)->subMinutes($shift->early_out_time)->format('H:i:s'); // e.g. "17:45:00"
+
+        // Check if attendance entry already exists for the day
+        $attendance = DB::table('attendances')
+            ->where('employee_id', $user->id)
+            ->where('date', $date)
+            ->first();
+
+        if (!$attendance) {
+            // First punch of the day
+            $isLate = $timestamp->format('H:i:s') > $lateEntryLimit; // Compare the punch time with late entry limit
+
+            // Insert the first attendance entry
+            DB::table('attendances')->insert([
+                'employee_id'    => $user->id,
+                'date'           => $date,
+                'shift_start_at' => $shiftStartTime,
+                'user_entry_time' => $timeOnly, // Store the time in time format
+                'is_late'        => $isLate,
+                'shift_end_at'   => $shiftEndTime,
+                'created_at'     => now(),
+                'updated_at'     => now(),
+            ]);
+
+            return response()->json(['message' => 'Attendance entry created'], 201);
+        } else {
+            // 2nd punch of the day (Exit)
+            $isEarly = $timestamp->format('H:i:s') < $earlyOutLimit; // Compare the exit time with early out limit
+
+            // Update exit time and early out related fields
+            DB::table('attendances')
+                ->where('id', $attendance->id)
+                ->update([
+                    'user_exit_time' => $timeOnly, // Store the exit time as a time
+                    'is_early'       => $isEarly,
+                    'updated_at'     => now(),
+                ]);
+
+            return response()->json(['message' => 'Attendance exit updated'], 200);
+        }
     }
 }

@@ -55,7 +55,10 @@
                         <a class="nav-link" href="{{ route('devices.index') }}">Device</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ route('devices.Attendance') }}">Attendance</a>
+                        <a class="nav-link" href="{{ route('devices.inOutRecourd') }}">inOutRecourd</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ route('devices.Attendance') }}">attendance</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="{{ route('shifts.index') }}">Shifts</a>
