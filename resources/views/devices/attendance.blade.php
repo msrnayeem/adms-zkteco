@@ -14,35 +14,31 @@
             <table class="table table-bordered data-table">
                 <thead>
                     <tr>
-                        <th>Employee ID</th>
+                        <th>ID</th>
+                        <th>Employee Name</th>
                         <th>Date</th>
                         <th>Shift Start</th>
                         <th>Entry Time</th>
-                        <th>Late Entry</th>
+                        <th>Is Late</th>
                         <th>Shift End</th>
                         <th>Exit Time</th>
-                        <th>Late Out Time</th>
-                        <th>Is Late</th>
                         <th>Is Early</th>
                         <th>Manual Entry</th>
-                        <th>Manual Entry By</th>
                     </tr>
                 </thead>
                 <tbody>
                     @foreach ($attendances as $attendance)
                         <tr>
                             <td>{{ $attendance->employee_id }}</td>
+                            <td>{{ $attendance->employee->name }}</td>
                             <td>{{ $attendance->date }}</td>
-                            <td>{{ $attendance->shift_start_time ?? 'N/A' }}</td>
-                            <td>{{ $attendance->entry_time }}</td>
-                            <td>{{ $attendance->late_entry }}</td>
-                            <td>{{ $attendance->shift_end_time ?? 'N/A' }}</td>
-                            <td>{{ $attendance->exit_time ?? 'N/A' }}</td>
-                            <td>{{ $attendance->late_out_time }}</td>
+                            <td>{{ $attendance->formatted_shift_start_at }}</td>
+                            <td>{{ $attendance->formatted_user_entry_time }}</td>
                             <td>{{ $attendance->is_late ? 'Yes' : 'No' }}</td>
+                            <td>{{ $attendance->formatted_shift_end_at }}</td>
+                            <td>{{ $attendance->formatted_user_exit_time }}</td>
                             <td>{{ $attendance->is_early ? 'Yes' : 'No' }}</td>
                             <td>{{ $attendance->manual_entry ? 'Yes' : 'No' }}</td>
-                            <td>{{ $attendance->manual_entry_by ?? 'N/A' }}</td>
                         </tr>
                     @endforeach
                 </tbody>
