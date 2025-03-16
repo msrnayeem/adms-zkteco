@@ -102,7 +102,7 @@ class iclockController extends Controller
                 // Check if the expected index exists to avoid Undefined array key error
                 $employee_id = $data[0] ?? 'Unknown';
                 $timestamp = $data[1] ?? 'Unknown';
-                $method = $data[3] ?? null;
+                $method = isset($data[3]) ? $data[3] : null;
 
                 // Log the values to make sure we see what's being processed
                 Log::info('Processed Attendance Record', [
@@ -125,6 +125,7 @@ class iclockController extends Controller
                     DB::table('in_out_records')->insert($q);
                     $attendanceRecords[] = $q;
                     $tot++;
+                    $this->updateAttendance($employee_id, $timestamp);
                 }
             }
 
@@ -198,21 +199,22 @@ class iclockController extends Controller
                     $q['created_at'] = now();
                     $q['updated_at'] = now();
                     DB::table('in_out_records')->insert($q);
+
+                    $this->updateAttendance($employee_id, $timestamp);
                 }
             }
         }
     }
 
-    public function updateAttendance(Request $request)
+    public function updateAttendance($given_emp_id, $given_timestamp)
     {
-        // Extract the provided employee_id (zk_device_id) and punch timestamp
-        $zkEmployeeId = $request->input('employee_id');
-        $timestamp = Carbon::parse($request->input('timestamp'));  // This will handle the timestamp
+
+        $timestamp = Carbon::parse($given_timestamp);  // This will handle the timestamp
         $date = $timestamp->toDateString();      // e.g. "2025-03-17"
         $timeOnly = $timestamp->toTimeString();  // e.g. "17:30:00" (for exit punch)
 
         // Get user details including shift
-        $user = User::where('zk_device_id', $zkEmployeeId)
+        $user = User::where('zk_device_id', $given_emp_id)
             ->select('id', 'shift_id')
             ->first();
 
