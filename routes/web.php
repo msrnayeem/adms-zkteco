@@ -5,9 +5,7 @@ use App\Http\Controllers\iclockController;
 use App\Http\Controllers\ShiftController;
 use App\Http\Controllers\EmployeeController;
 use Illuminate\Support\Facades\Route;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\DB;
-use Carbon\Carbon;
+
 
 
 Route::get('devices', [DeviceController::class, 'Index'])->name('devices.index');
@@ -42,5 +40,3 @@ Route::get('time', function () {
         'timezone' => config('app.timezone')
     ];
 });
-
-

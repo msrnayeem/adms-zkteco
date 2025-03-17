@@ -31,7 +31,9 @@
                         <tr>
                             <td>{{ $attendance->employee_id }}</td>
                             <td>{{ $attendance->employee->name }}</td>
-                            <td>{{ $attendance->date }}</td>
+                            <td>
+                                {{ $attendance->day }}-{{ str_pad($attendance->month, 2, '0', STR_PAD_LEFT) }}-{{ $attendance->year }}
+                            </td>
                             <td>{{ $attendance->formatted_shift_start_at }}</td>
                             <td>{{ $attendance->formatted_user_entry_time }}</td>
                             <td>{{ $attendance->is_late ? 'Yes' : 'No' }}</td>

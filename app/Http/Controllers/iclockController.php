@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 use App\Models\Shift;
+use Laravel\Ui\Presets\React;
 
 class iclockController extends Controller
 {
@@ -211,6 +212,10 @@ class iclockController extends Controller
 
         $timestamp = Carbon::parse($given_timestamp);  // This will handle the timestamp
         $date = $timestamp->toDateString();      // e.g. "2025-03-17"
+
+
+        list($year, $month, $day) = explode('-', $date);
+
         $timeOnly = $timestamp->toTimeString();  // e.g. "17:30:00" (for exit punch)
 
         // Get user details including shift
@@ -238,7 +243,9 @@ class iclockController extends Controller
         // Check if attendance entry already exists for the day
         $attendance = DB::table('attendances')
             ->where('employee_id', $user->id)
-            ->where('date', $date)
+            ->where('day', $day)
+            ->where('month', $month)
+            ->where('year', $year)
             ->first();
 
         if (!$attendance) {
@@ -248,9 +255,90 @@ class iclockController extends Controller
             // Insert the first attendance entry
             DB::table('attendances')->insert([
                 'employee_id'    => $user->id,
-                'date'           => $date,
+                'day'           => $day,
+                'month'         => $month,
+                'year'          => $year,
                 'shift_start_at' => $shiftStartTime,
-                'user_entry_time' => $timeOnly, // Store the time in time format
+                'user_entry_time' => $timeOnly,
+                'is_late'        => $isLate,
+                'shift_end_at'   => $shiftEndTime,
+                'created_at'     => now(),
+                'updated_at'     => now(),
+            ]);
+
+            return response()->json(['message' => 'Attendance entry created'], 201);
+        } else {
+            // 2nd punch of the day (Exit)
+            $isEarly = $timestamp->format('H:i:s') < $earlyOutLimit; // Compare the exit time with early out limit
+
+            // Update exit time and early out related fields
+            DB::table('attendances')
+                ->where('id', $attendance->id)
+                ->update([
+                    'user_exit_time' => $timeOnly, // Store the exit time as a time
+                    'is_early'       => $isEarly,
+                    'updated_at'     => now(),
+                ]);
+
+            return response()->json(['message' => 'Attendance exit updated'], 200);
+        }
+    }
+
+    public function updateAttendanceAPI(Request $request)
+    {
+        $given_emp_id = $request->input('employee_id');
+        $given_timestamp = $request->input('timestamp');
+
+        $timestamp = Carbon::parse($given_timestamp);  // This will handle the timestamp
+        $date = $timestamp->toDateString();      // e.g. "2025-03-17"
+
+
+        list($year, $month, $day) = explode('-', $date);
+
+        $timeOnly = $timestamp->toTimeString();  // e.g. "17:30:00" (for exit punch)
+
+        // Get user details including shift
+        $user = User::where('zk_device_id', $given_emp_id)
+            ->select('id', 'shift_id')
+            ->first();
+
+        if (!$user) {
+            return response()->json(['message' => 'User not found'], 404);
+        }
+
+        // Get shift details
+        $shift = Shift::find($user->shift_id);
+
+        if (!$shift) {
+            return response()->json(['message' => 'Shift not found'], 404);
+        }
+
+        // Convert shift times to Carbon instances
+        $shiftStartTime = Carbon::parse($shift->entry_time)->format('H:i:s');  // Shift start time as time string (e.g. "10:00:00")
+        $shiftEndTime = Carbon::parse($shift->out_time)->format('H:i:s');      // Shift end time as time string (e.g. "18:00:00")
+        $lateEntryLimit = Carbon::parse($shift->entry_time)->addMinutes($shift->late_entry)->format('H:i:s');  // e.g. "10:15:00"
+        $earlyOutLimit = Carbon::parse($shift->out_time)->subMinutes($shift->early_out_time)->format('H:i:s'); // e.g. "17:45:00"
+
+        // Check if attendance entry already exists for the day
+        $attendance = DB::table('attendances')
+            ->where('employee_id', $user->id)
+            ->where('day', $day)
+            ->where('month', $month)
+            ->where('year', $year)
+            ->first();
+
+        if (!$attendance) {
+            // First punch of the day
+            $isLate = $timestamp->format('H:i:s') > $lateEntryLimit; // Compare the punch time with late entry limit
+
+            // Insert the first attendance entry
+            DB::table('attendances')->insert([
+                'employee_id'    => $user->id,
+                'day'           => $day,
+                'month'         => $month,
+                'year'          => $year,
+                'shift_start_at' => $shiftStartTime,
+                'user_entry_time' => $timeOnly,
                 'is_late'        => $isLate,
                 'shift_end_at'   => $shiftEndTime,
                 'created_at'     => now(),

@@ -15,5 +15,7 @@ class DatabaseSeeder extends Seeder
         // $this->call([
         //     JadwalSholatSeeder::class,
         // ]);
+
+        $this->call(UserSeeder::class);
     }
 }

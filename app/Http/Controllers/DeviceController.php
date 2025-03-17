@@ -44,7 +44,7 @@ class DeviceController extends Controller
     public function Attendance()
     {
         $attendances = Attendance::with('employee') // Eager load employee data
-            ->orderBy('date', 'desc') // Sort by date in descending order
+            ->orderBy('updated_at', 'desc') // Sort by date in descending order
             ->paginate(10);
 
         return view('devices.attendance', compact('attendances'));

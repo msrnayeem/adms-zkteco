@@ -14,7 +14,9 @@ return new class extends Migration
         Schema::create('attendances', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('employee_id');
-            $table->date('date');
+            $table->integer('day');
+            $table->integer('month');
+            $table->integer('year');
 
             $table->time('shift_start_at')->nullable();
             $table->time('user_entry_time');
@@ -23,7 +25,7 @@ return new class extends Migration
             $table->time('shift_end_at')->nullable();
             $table->time('user_exit_time')->nullable();
             $table->boolean('is_early')->default(false);
-            
+
             $table->boolean('manual_entry')->default(false);
             $table->unsignedBigInteger('manual_entry_by')->nullable();
             $table->timestamps();
