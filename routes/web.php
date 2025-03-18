@@ -6,12 +6,13 @@ use App\Http\Controllers\ShiftController;
 use App\Http\Controllers\EmployeeController;
 use Illuminate\Support\Facades\Route;
 
+use App\Http\Controllers\AttendanceController;
 
 
 Route::get('devices', [DeviceController::class, 'Index'])->name('devices.index');
 Route::get('devices-log', [DeviceController::class, 'DeviceLog'])->name('devices.DeviceLog');
 Route::get('finger-log', [DeviceController::class, 'FingerLog'])->name('devices.FingerLog');
-Route::get('attendance', [DeviceController::class, 'Attendance'])->name('devices.Attendance');
+
 Route::get('in-out-record', [DeviceController::class, 'inOutRecourd'])->name('devices.inOutRecourd');
 
 
@@ -40,3 +41,5 @@ Route::get('time', function () {
         'timezone' => config('app.timezone')
     ];
 });
+
+Route::get('attendance', [AttendanceController::class, 'index'])->name('attendance.index');

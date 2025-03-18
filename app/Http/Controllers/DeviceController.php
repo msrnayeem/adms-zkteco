@@ -41,14 +41,7 @@ class DeviceController extends Controller
         return view('devices.inOutRecourd', compact('attendances'));
     }
 
-    public function Attendance()
-    {
-        $attendances = Attendance::with('employee') // Eager load employee data
-            ->orderBy('updated_at', 'desc') // Sort by date in descending order
-            ->paginate(10);
-
-        return view('devices.attendance', compact('attendances'));
-    }
+    
 
 
     // // Menampilkan form tambah device
